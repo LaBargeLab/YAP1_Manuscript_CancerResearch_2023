@@ -1,0 +1,52 @@
+##Code used to generate Figure 1C
+##YAP1_mRNA_expression_Age_Samples
+
+#load ggplot
+library(ggplot2)
+
+#Import dataframe with only young, middle aged, and old samples
+data <- MiyanoShalabiRNASeq_LEP.MEP_p4.organoid.rlogMatrix.ComBat.rm.outlier.clean.SubjectLevel
+
+#Subset data: YAP1 gene expression, passage 4, reduction mammoplasty, separate LEP and MEP data; transpose
+yapdata <- data[grep("ENSG00000137693",row.names(data)),]
+yapdata <- yapdata[grep("p4",names(yapdata))]
+yapdata2 <- yapdata[grep("RM",names(yapdata))]
+yapdataLEP <- yapdata2[grep("LEP",names(yapdata2))]
+yapdataMEP <- yapdata2[grep("MEP",names(yapdata2))]
+yapdfLEP <- data.frame(yapdataLEP)
+yapdfMEP <- data.frame(yapdataMEP)
+yapdfLEP <- t(yapdfLEP)
+yapdfMEP <- t(yapdfMEP)
+yapdfLEP <- data.frame(yapdfLEP)
+yapdfMEP <- data.frame(yapdfMEP)
+
+#add new column to yapdfLEP; categorizes samples into age groups
+rawnamesofsamples <- row.names(yapdfLEP)
+Middleaged <- gsub(pattern = "^\\S*.Normal.RM.Middleaged$", replacement = "Middleaged", x = rawnamesofsamples)
+Old <- gsub(pattern = "^\\S*.Normal.RM.Old$", replacement = "Old", x = Middleaged)
+Young <- Old <- gsub(pattern = "^\\S*.Normal.RM.Young$", replacement = "Young", x = Old)
+yapdfLEP$agegroup <- as.factor(Young)
+
+#order age groups
+yapdfLEP$agegroup <- factor(yapdfLEP$agegroup, levels=c("Young", "Middleaged", "Old"))
+
+pdf("Yap1_Expression_AgedRNAseqData.pdf")
+ggplot(yapdfLEP, aes(x=agegroup,y=ENSG00000137693_YAP1)) + 
+  geom_boxplot() +
+  geom_dotplot(dotsize=1.5,fill="deeppink1",binaxis='y',stackdir='center', position=position_dodge(.2)) +
+  ylab("") +
+  theme_bw() + 
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  theme(axis.line = element_line(colour = 'black', size = 1)) +
+  theme(aspect.ratio = 2/5) +
+  theme(axis.text.x = (element_blank())) +
+  theme(axis.text.y = element_text(color = 'black',size=18)) +
+  theme(axis.title.y = element_text(color = 'black', size=15)) +
+  theme(axis.title.x = element_blank()) +
+  theme(legend.text=element_text(size=14)) +
+  theme(legend.title=element_text(size=14)) +
+  theme(axis.text.y = element_text(size=12))
+dev.off()
+
+write.csv(yapdfLEP,"YAPExpression_AgeSamples.csv")
