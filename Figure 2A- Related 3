@@ -1,1 +1,138 @@
+####Differential Gene Expression Analysis to generate YAP1 Multi-state gene signature
 
+#DESeq2
+library(DESeq2)
+#Make a variable pointing to path your htseq count files are in
+directory <- "~/Desktop/RNAseq_Analyses/2020_2021_Analyses_Old_Computer/DESeq2_Analyses_DataGenerated/Yap1_2_4_184A1_countfiles/"
+
+#Generate a sample table
+#Get the names of all files want to analyze
+sampleFiles1 <- grep("14914",list.files(directory),value=TRUE)
+sampleFiles2 <- grep("14915",list.files(directory),value=TRUE)
+sampleFiles3 <- grep("14916",list.files(directory),value=TRUE)
+sampleFiles4 <- grep("14917",list.files(directory),value=TRUE)
+sampleFiles5 <- grep("26247",list.files(directory),value=TRUE)
+sampleFiles6 <- grep("26248",list.files(directory),value=TRUE)
+sampleFiles7 <- grep("26249",list.files(directory),value=TRUE)
+sampleFiles8 <- grep("26250",list.files(directory),value=TRUE)
+sampleFiles9 <- grep("33708",list.files(directory),value=TRUE)
+sampleFiles10 <- grep("33709",list.files(directory),value=TRUE)
+sampleFiles11 <- grep("33710",list.files(directory),value=TRUE)
+sampleFiles12 <- grep("33711",list.files(directory),value=TRUE)
+sampleFiles13 <- grep("33712",list.files(directory),value=TRUE)
+sampleFiles14 <- grep("33713",list.files(directory),value=TRUE)
+sampleFiles15 <- grep("33714",list.files(directory),value=TRUE)
+sampleFiles16 <- grep("33715",list.files(directory),value=TRUE)
+sampleFiles17 <- grep("33716",list.files(directory),value=TRUE)
+sampleFiles18 <- grep("33717",list.files(directory),value=TRUE)
+sampleFiles19 <- grep("33718",list.files(directory),value=TRUE)
+sampleFiles20 <- grep("33719",list.files(directory),value=TRUE)
+sampleFiles21 <- grep("33720",list.files(directory),value=TRUE)
+sampleFiles22 <- grep("33721",list.files(directory),value=TRUE)
+sampleFiles23 <- grep("33722",list.files(directory),value=TRUE)
+sampleFiles24 <- grep("33723",list.files(directory),value=TRUE)
+sampleFiles25 <- grep("33724",list.files(directory),value=TRUE)
+sampleFiles26 <- grep("33725",list.files(directory),value=TRUE)
+sampleFiles27 <- grep("33726",list.files(directory),value=TRUE)
+sampleFiles28 <- grep("33727",list.files(directory),value=TRUE)
+sampleFiles29 <- grep("33728",list.files(directory),value=TRUE)
+
+sampleFiles <- c(sampleFiles1,sampleFiles2,sampleFiles3,sampleFiles4,sampleFiles5,sampleFiles6,sampleFiles7,sampleFiles8,sampleFiles9,sampleFiles10,
+                 sampleFiles11,sampleFiles12,sampleFiles13,sampleFiles14,sampleFiles15,sampleFiles16,sampleFiles17,sampleFiles18,sampleFiles19,
+                 sampleFiles20,sampleFiles21,sampleFiles22,sampleFiles23,sampleFiles24,sampleFiles25,sampleFiles26,sampleFiles27,sampleFiles28,
+                 sampleFiles29)
+
+#Get names of samples want to analyze
+NamesOfSamples <- sampleFiles
+NamesOfSamples2 <- gsub(pattern = "\\d+_Yap", replacement = "Yap", x = NamesOfSamples)
+NamesOfSamples3 <- gsub(pattern = "_L999.bam.count", replacement = "", x = NamesOfSamples2)
+
+#Make a list of condition 1, ctrl or yap samples
+CtrlorYap <- c("Ctrl",rep("Yap",3),"Ctrl",rep("Yap",3),rep("Ctrl",6),rep("Yap",15))
+
+#Make a list of the background experiment/run
+experiment <- c(rep("1",4),rep("2",4),rep("4",21))
+
+#Make a table of sample names, file names, and condition
+sampleTable <- data.frame(sampleName = NamesOfSamples3,
+                          fileName = sampleFiles,
+                          phenotype = CtrlorYap,
+                          background = experiment)
+
+#Build DESeqDataSet using DESeqDataSetFromHTSeqCount function
+Yap4dds <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
+                                      directory = directory,
+                                      design= ~ background + phenotype)
+
+#Pre-filtering, remove rows of genes with less than 10 reads, makes things faster
+keep <- rowSums(counts(Yap4dds)) >= 10
+Yap4dds <- Yap4dds[keep,]
+
+#Run deseq algorithm on dataset
+Yap4dds <- DESeq(Yap4dds)
+
+#Order factor levels
+Yap4dds$phenotype <- relevel(Yap4dds$phenotype, ref = "Ctrl")
+
+#Makes a result table
+Yap4dds <- DESeq(Yap4dds)
+res <- results(Yap4dds, name = "phenotype_Yap_vs_Ctrl", alpha = 0.05)
+#res
+
+#Order Results based on lowest p-values
+resOrdered <- res[order(res$padj),]
+
+#basic tallies
+summary(resOrdered)
+
+#Exporting results to csv files
+write.csv(as.data.frame(resOrdered),
+          file="AllYapSamples_DGEA_Yap_vs_Ctrl.csv")
+
+#exporting only results that pass adjusted p-value threshold
+resSig <- subset(resOrdered, padj < 0.05)
+write.csv(as.data.frame(resSig),
+          file="AllYapSamples_DGEA_p0.05_Yap_vs_Ctrl.csv")
+
+write.csv(row.names(resSig),file="AllYapSamples_DGEA_p0.05_Yap_vs_Ctrl_JustEnsemblNames.csv")
+
+#Convert2GeneSymbol
+library(EnsDb.Hsapiens.v86)
+
+SigUpGenes_Symbol <- ensembldb::select(EnsDb.Hsapiens.v86, keys = as.vector(row.names(resSig)), keytype = "GENEID", columns = c("SYMBOL"))
+
+Symbols <- SigUpGenes_Symbol$SYMBOL
+
+write.csv(Symbols, file="AllYapSamples_p05Genes_genesymbol.csv",row.names = FALSE)
+
+
+#subset all upregulated genes
+SigUpGenes <- subset(resSig, log2FoldChange > 0)
+SigUpGenes <- row.names(SigUpGenes)
+write.csv(as.data.frame(SigUpGenes),file="AllYapSamples_p05UpGenes.csv",row.names=FALSE)
+
+#Convert2GeneSymbol
+library(EnsDb.Hsapiens.v86)
+
+SigUpGenes_Symbol <- ensembldb::select(EnsDb.Hsapiens.v86, keys = as.vector(SigUpGenes), keytype = "GENEID", columns = c("SYMBOL"))
+
+Symbols <- SigUpGenes_Symbol$SYMBOL
+
+write.csv(Symbols, file="AllYapSamples_p05UpGenes_genesymbol.csv",row.names = FALSE)
+
+#Batch Correct
+library(sva)
+
+#Calculate rlog transformed values of count data
+#Returns SummarizedExperiment object which contains rlog-transformed values in its assay slot 
+rld <- rlog(Yap4dds)
+dat <- assay(rld)
+batch = Yap4dds$background
+mod0 <- model.matrix(~   1, colData(Yap4dds))
+combat_data = ComBat(dat=dat, batch=batch,mod=mod0,par.prior=TRUE, prior.plots=FALSE)
+
+##Get list of gene universe
+GeneUniverse <- row.names(res)
+
+write.csv(GeneUniverse,
+          file="GeneUniverse_AllYapSamples_DGEA_p0.05_Yap_vs_Ctrl_JustEnsemblNames.csv",row.names = FALSE, quote = FALSE)
