@@ -1,0 +1,135 @@
+####Code used to generate LEP and MEP age breast cancer risk gene sets
+
+
+##Generate Age Breast Cancer Risk LEP gene set
+#load DESeq2
+library(DESeq2)
+#Make a variable pointing to path your htseq count files are in
+directory <- "~/Desktop/Harmonized_counts/RNAseq_LEP_MEP_Age_GeneticRisk/"
+
+#Read in sampleTable
+sampleTable <- read.csv("~/Desktop/RNAseq_Analyses/2021_11/2021_11_03/SampleTable_AgeSamples.csv")
+sampleTable$Seq_Run <- as.factor(sampleTable$Seq_Run)
+#Select for LEP only
+LEPsampleTable <- subset(sampleTable,Cell_Type=="LEP")
+
+#Build DESeqDataSet using DESeqDataSetFromHTSeqCount function
+Yapdds <- DESeqDataSetFromHTSeqCount(sampleTable = LEPsampleTable,
+                                      directory = directory,
+                                      design= ~ Seq_Run + Age_Group)
+
+#Pre-filtering, remove rows of genes with less than 10 reads, makes things faster
+keep <- rowSums(counts(Yapdds)) >= 10
+Yapdds <- Yapdds[keep,]
+
+#Run deseq algorithm on dataset
+Yapdds <- DESeq(Yapdds)
+
+#Get normalized counts
+dds <- estimateSizeFactors(Yapdds)
+Normalized_counts <- counts(dds, normalized=TRUE)
+
+#Batch correct counts
+library(sva)
+dat <- Normalized_counts
+batch = Yapdds$Seq_Run
+mod0 <- model.matrix(~   1, colData(Yapdds))
+combat_data = ComBat(dat, batch=batch)
+write.csv(combat_data,"NormalizedCounts_AgeSamples_LEP.csv", quote = FALSE)
+
+#Make a result table
+#res <- results(Yapdds, name = "Age_Group_Old_vs_Young", alpha = 0.05)
+res <- results(Yapdds,contrast=c("Age_Group","Old","Young"),alpha=0.05)
+summary(res)
+resOrdered <- res[order(res$padj),]
+#get list of gene universe
+GeneUniverse <- row.names(resOrdered)
+write.csv(GeneUniverse,
+          file="gene_universe_LEP.csv",quote = FALSE,row.names=FALSE)
+#get list of differentially expressed genes
+resSig <- subset(resOrdered, padj < 0.05)
+write.csv(as.data.frame(resSig),
+          file="DGEA_p0.05_Old_vs_Young_LEP.csv")
+#get list of differentially expressed genes, just the gene names
+GenesOfInterest <- row.names(resSig)
+write.csv(GenesOfInterest, row.names = FALSE, quote = FALSE, file="GeneList_DGEA_p0.05_Old_vs_Young_LEP.csv")
+#Get list of differentially expressed genes that increase (go up in old compared to young)
+upGenes <- subset(resSig, log2FoldChange > 0)
+upGeneList <- row.names(upGenes)
+write.csv(as.data.frame(upGeneList),
+          file="upGenes_DGEA_p0.05_Old_vs_Young_LEP.csv", row.names=FALSE, quote = FALSE)
+
+downGenes <- subset(resSig, log2FoldChange < 0)
+downGeneList <- row.names(downGenes)
+write.csv(as.data.frame(downGeneList),
+          file="downGenes_DGEA_p0.05_Old_vs_Young_LEP.csv", row.names=FALSE, quote = FALSE)
+
+
+
+
+
+
+##Generate Age Breast Cancer Risk MEP gene set
+#load DESeq2
+library(DESeq2)
+#Make a variable pointing to path your htseq count files are in
+directory <- "~/Desktop/Harmonized_counts/RNAseq_LEP_MEP_Age_GeneticRisk/"
+
+#Read in sampleTable
+sampleTable <- read.csv("~/Desktop/RNAseq_Analyses/2021_11/2021_11_03/SampleTable_AgeSamples.csv")
+sampleTable$Seq_Run <- as.factor(sampleTable$Seq_Run)
+#Select for LEP only
+MEPsampleTable <- subset(sampleTable,Cell_Type=="MEP")
+
+#Build DESeqDataSet using DESeqDataSetFromHTSeqCount function
+Yapdds <- DESeqDataSetFromHTSeqCount(sampleTable = MEPsampleTable,
+                                      directory = directory,
+                                      design= ~ Seq_Run + Age_Group)
+
+#Pre-filtering, remove rows of genes with less than 10 reads, makes things faster
+keep <- rowSums(counts(Yapdds)) >= 10
+Yapdds <- Yapdds[keep,]
+
+#Run deseq algorithm on dataset
+Yapdds <- DESeq(Yapdds)
+
+#Get normalized counts
+dds <- estimateSizeFactors(Yapdds)
+Normalized_counts <- counts(dds, normalized=TRUE)
+
+#Batch correct counts
+library(sva)
+dat <- Normalized_counts
+batch = Yapdds$Seq_Run
+mod0 <- model.matrix(~   1, colData(Yapdds))
+combat_data = ComBat(dat, batch=batch)
+write.csv(combat_data,"NormalizedCounts_AgeSamples_MEP.csv", quote = FALSE)
+
+#Make a result table
+#res <- results(Yapdds, name = "Age_Group_Old_vs_Young", alpha = 0.05)
+res <- results(Yapdds,contrast=c("Age_Group","Old","Young"),alpha=0.05)
+summary(res)
+resOrdered <- res[order(res$padj),]
+#get list of gene universe
+GeneUniverse <- row.names(resOrdered)
+write.csv(GeneUniverse,
+          file="gene_universe_MEP.csv",quote = FALSE,row.names=FALSE)
+#get list of differentially expressed genes
+resSig <- subset(resOrdered, padj < 0.05)
+write.csv(as.data.frame(resSig),
+          file="DGEA_p0.05_Old_vs_Young_MEP.csv")
+#get list of differentially expressed genes, just the gene names
+GenesOfInterest <- row.names(resSig)
+write.csv(GenesOfInterest, row.names = FALSE, quote = FALSE, file="GeneList_DGEA_p0.05_Old_vs_Young_MEP.csv")
+#Get list of differentially expressed genes that increase (go up in old compared to young)
+upGenes <- subset(resSig, log2FoldChange > 0)
+upGeneList <- row.names(upGenes)
+write.csv(as.data.frame(upGeneList),
+          file="upGenes_DGEA_p0.05_Old_vs_Young_MEP.csv", row.names=FALSE, quote = FALSE)
+
+downGenes <- subset(resSig, log2FoldChange < 0)
+downGeneList <- row.names(downGenes)
+write.csv(as.data.frame(downGeneList),
+          file="downGenes_DGEA_p0.05_Old_vs_Young_MEP.csv", row.names=FALSE, quote = FALSE)
+
+
