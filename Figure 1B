@@ -1,0 +1,69 @@
+####Plot YAP1 IHC Data
+
+#load ggplot
+library(ggplot2)
+
+#Load in data
+Data <- read.csv(file = "~/Desktop/Experiments/IF_Human_Tissue/Dan_Analyses/R_analyses/2023_04_25_BoxAndWhisker_ModifiedSamples_3/Dan_Analysis_ForR_3.csv")
+
+#Subset data - take out samples with scant or no epithelium
+SubsetData <- subset(Data,notes=='na')
+
+SubsetData1 <- subset(SubsetData,Questionable=="no")
+SubsetData1.2 <- subset(SubsetData,Questionable=="idk")
+SubsetData1 <- rbind(SubsetData1,SubsetData1.2)
+OrderSubsetData1 <- SubsetData1[order(SubsetData1$Mutation_Type),]
+
+#Subset data - only include age samples
+SubsetData2 <- subset (SubsetData1, Mutation_Type == "None")
+OrderSubsetData2 <- SubsetData2[order(SubsetData2$Age_Type),]
+write.csv(OrderSubsetData2,file="AgeData_Ordered.csv")
+
+#Make box and whisker plot
+pdf("Yap1_Expression_LEP_Nuclear_Age_Samples.pdf")
+ggplot(SubsetData2, aes(x=factor(Age_Type, level=c('Young','Middle.Aged','Old')),y=LEP_Nuclear)) + 
+  geom_boxplot() +
+  geom_dotplot(dotsize=1.5,binaxis='y',stackdir='center', position=position_dodge(.2),fill="deeppink") +
+  ylim(10,60) +
+  ylab("") +
+  theme_bw() + 
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  theme(axis.line = element_line(colour = 'black', size = 1)) +
+  theme(aspect.ratio = 2/5) +
+  # theme(axis.text.x = (element_blank())) +
+  theme(axis.text.y = element_text(color = 'black',size=18)) +
+  theme(axis.title.y = element_text(color = 'black', size=15)) +
+  theme(axis.title.x = element_blank()) +
+  theme(legend.text=element_text(size=14)) +
+  theme(legend.title=element_text(size=14)) +
+  theme(axis.text.y = element_text(size=12)) 
+# + coord_flip()
+dev.off() 
+
+
+#Genetic risk data
+#Make box and whisker plot
+pdf("Yap1_Expression_LEP_Nuclear_GeneticRisk_Samples.pdf")
+ggplot(SubsetData1, aes(x=factor(Mutation_Type, level=c('None','BRCA')),y=LEP_Nuclear)) + 
+  geom_boxplot() +
+  geom_dotplot(dotsize=1.5,binaxis='y',stackdir='center', position=position_dodge(.2),fill="deeppink") +
+#  ylim(10,60) +
+  ylab("") +
+  theme_bw() + 
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  theme(axis.line = element_line(colour = 'black', size = 1)) +
+  theme(aspect.ratio = 2/5) +
+  # theme(axis.text.x = (element_blank())) +
+  theme(axis.text.y = element_text(color = 'black',size=18)) +
+  theme(axis.title.y = element_text(color = 'black', size=15)) +
+  theme(axis.title.x = element_blank()) +
+  theme(legend.text=element_text(size=14)) +
+  theme(legend.title=element_text(size=14)) +
+  theme(axis.text.y = element_text(size=12)) 
+# + coord_flip()
+dev.off() 
+
+#Write a ordered files with brca data
+write.csv(OrderSubsetData1,file="GeneticData.csv")
