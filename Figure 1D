@@ -1,0 +1,79 @@
+##Code used to generate Figure 1D
+##YAP1_mRNA_expression_Genetic_Samples
+
+#load ggplot
+library(ggplot2)
+
+#Import dataframe
+data <- MiyanoShalabiRNASeq_LEP.MEP_p4.organoid.rlogMatrix.ComBat.rm.outlier.clean.SubjectLevel
+
+#Subset data: YAP1 expression, passage 4, separate LEP and MEP data; transpose
+yapdata <- data[grep("ENSG00000137693",row.names(data)),]
+yapdata <- yapdata[grep("p4",names(yapdata))]
+yapdataLEP <- yapdata[grep("LEP",names(yapdata))]
+yapdataMEP <- yapdata[grep("MEP",names(yapdata))]
+yapdfLEP <- data.frame(yapdataLEP)
+yapdfMEP <- data.frame(yapdataMEP)
+yapdfLEP <- t(yapdfLEP)
+yapdfMEP <- t(yapdfMEP)
+yapdfLEP <- data.frame(yapdfLEP)
+yapdfMEP <- data.frame(yapdfMEP)
+
+#Import metadata, subset, and add to yapdfLEP
+metadata <- MiyanoShalabiRNASeq_LEP.MEP_p4.organoid.metadata.rm.outlier.SubjectLevel
+metadata <- subset(metadata,CultureCondition=="p4")
+LEPmetadata <- subset(metadata,CellTypeID=="LEP")
+
+yapdfLEP$TissueTypeID <- as.factor(LEPmetadata$TissueTypeID)
+
+yapdfLEP$MutationID <- LEPmetadata$MutationID
+MutationState <- LEPmetadata$MutationID
+MutationState <- gsub(pattern = "None", replacement = "Average Risk", x = MutationState)
+MutationState <- gsub(pattern = "BRCA1", replacement = "Genetic Risk", x = MutationState)
+MutationState <- gsub(pattern = "BRCA2", replacement = "Genetic Risk", x = MutationState)
+MutationState <- gsub(pattern = "PALB2VUS.APCVUS", replacement = "Genetic Risk", x = MutationState)
+MutationState <- gsub(pattern = "PALB2", replacement = "Genetic Risk", x = MutationState)
+yapdfLEP$MutationState <- as.factor(MutationState)
+
+yapdfLEP$Age <- as.factor(LEPmetadata$Age)
+
+#Subset only Reduction Mammoplasty (RM) and Prophylactic Mastectomy (PM)
+yapdfsubset1 <- subset(yapdfLEP,TissueTypeID=="RM")
+yapdfsubset2 <- subset(yapdfLEP,TissueTypeID=="PM")
+yapdfsubset <- rbind(yapdfsubset1,yapdfsubset2)
+
+
+pdf("Yap1_Expression_GeneticRiskRNAseqData_RM_PM_Only.pdf")
+ggplot(yapdfsubset, aes(x=reorder(MutationState,ENSG00000137693_YAP1),y=ENSG00000137693_YAP1)) + 
+  geom_boxplot() +
+  geom_dotplot(dotsize=1.5,fill="deeppink1",binaxis='y',stackdir='center', position=position_dodge(.2)) +
+  ylab("") +
+  theme_bw() + 
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  theme(axis.line = element_line(colour = 'black', size = 1)) +
+  theme(aspect.ratio = 2/5) +
+  # theme(axis.text.x = (element_blank())) +
+  theme(axis.text.y = element_text(color = 'black',size=18)) +
+  theme(axis.title.y = element_text(color = 'black', size=15)) +
+  theme(axis.title.x = element_blank()) +
+  theme(legend.text=element_text(size=14)) +
+  theme(legend.title=element_text(size=14)) +
+  theme(axis.text.y = element_text(size=12)) 
+# + coord_flip()
+dev.off()
+
+#Calculate median age
+yapdfsubset4 <- subset(yapdfsubset,MutationState=="Average Risk")
+yapdfsubset5 <- subset(yapdfsubset,MutationState=="Genetic Risk")
+
+MedianAge_AvgRisk <- median(as.numeric(as.character((yapdfsubset4$Age))))
+MedianAge_GeneticRisk <- median(as.numeric(as.character((yapdfsubset5$Age))))
+MedianAge_AvgRisk
+MedianAge_GeneticRisk
+
+# > MedianAge_AvgRisk
+# [1] 35
+# 
+# > MedianAge_GeneticRisk
+# [1] 40
