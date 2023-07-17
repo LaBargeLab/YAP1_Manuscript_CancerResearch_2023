@@ -1,4 +1,5 @@
-#Yap-Myc vs Ctrl-Myc 21p analysis
+####Differential gene expression analysis generating YAP1 Immortal Gene Signature
+####Yap-Myc vs Ctrl-Myc 21p analysis
 
 library(DESeq2)
 #Make a variable pointing to path your htseq count files are in
