@@ -1,0 +1,140 @@
+####Code used to generate LEP and MEP genetic breast cancer risk gene sets
+
+
+##Generate Genetic Breast Cancer Risk LEP gene set
+#load DESeq2
+library(DESeq2)
+#Make a variable pointing to path your htseq count files are in
+directory <- "~/Desktop/Harmonized_counts/RNAseq_LEP_MEP_Age_GeneticRisk/"
+#Read in sampleTable
+sampleTable <- read.csv("~/Desktop/RNAseq_Analyses/2021_11/Susceptibility_SampleTable.csv")
+sampleTable$Seq_Run <- as.factor(sampleTable$Seq_Run)
+#Select for LEP only 
+LEPsampleTable <- subset(sampleTable,Cell_Type=="LEP")
+#Select for RM and PM only
+RMLEPsampleTable <- subset(LEPsampleTable,Tissue_Source=="RM")
+PMLEPsampleTable <- subset(LEPsampleTable,Tissue_Source=="PM")
+RMPMLEPsampleTable <- rbind(RMLEPsampleTable,PMLEPsampleTable)
+
+#Build DESeqDataSet using DESeqDataSetFromHTSeqCount function
+Yapdds <- DESeqDataSetFromHTSeqCount(sampleTable = RMPMLEPsampleTable,
+                                      directory = directory,
+                                      design= ~ Seq_Run + Genetic_Risk_Group)
+
+#Pre-filtering, remove rows of genes with less than 10 reads, makes things faster
+keep <- rowSums(counts(Yapdds)) >= 10
+Yapdds <- Yapdds[keep,]
+
+#Run deseq algorithm on dataset
+Yapdds <- DESeq(Yapdds)
+
+#Get normalized counts
+dds <- estimateSizeFactors(Yapdds)
+Normalized_counts <- counts(dds, normalized=TRUE)
+
+#Batch correct counts
+library(sva)
+dat <- Normalized_counts
+batch = Yapdds$Seq_Run
+mod0 <- model.matrix(~   1, colData(Yapdds))
+combat_data = ComBat(dat, batch=batch)
+write.csv(combat_data,"~/Desktop/RNAseq_Analyses/2022_01/2022_01_18_NormalizedCounts_GeneticRiskSamples_LEP_RMPMOnly.csv", quote = FALSE)
+
+#Make a result table
+res <- results(Yapdds,contrast=c("Genetic_Risk_Group","High","Average"),alpha=0.05)
+summary(res)
+resOrdered <- res[order(res$padj),]
+#get list of gene universe
+GeneUniverse <- row.names(resOrdered)
+write.csv(GeneUniverse,
+          file="~/Desktop/RNAseq_Analyses/2022_01/2022_01_18_gene_universe_LEP_RMPMOnly.csv",quote = FALSE,row.names=FALSE)
+#get list of differentially expressed genes
+resSig <- subset(resOrdered, padj < 0.05)
+write.csv(as.data.frame(resSig),
+          file="~/Desktop/RNAseq_Analyses/2022_01/2022_01_18_DGEA_p0.05_HighRisk_vs_AverageRisk_LEP_RMPMOnly.csv")
+#get list of differentially expressed genes, just the gene names
+GenesOfInterest <- row.names(resSig)
+write.csv(GenesOfInterest, row.names = FALSE, quote = FALSE, file="~/Desktop/RNAseq_Analyses/2022_01/2022_01_18_GeneList_DGEA_p0.05_HighRisk_vs_AverageRisk_LEP.csv")
+#Get list of differentially expressed genes that increase (go up in old compared to young)
+upGenes <- subset(resSig, log2FoldChange > 0)
+upGeneList <- row.names(upGenes)
+write.csv(as.data.frame(upGeneList),
+          file="~/Desktop/RNAseq_Analyses/2022_01/2022_01_18_upGenes_DGEA_p0.05_HighRisk_vs_AverageRisk_LEP_RMPMOnly.csv", row.names=FALSE, quote = FALSE)
+
+downGenes <- subset(resSig, log2FoldChange < 0)
+downGeneList <- row.names(downGenes)
+write.csv(as.data.frame(downGeneList),
+          file="~/Desktop/RNAseq_Analyses/2022_01/2022_01_18_downGenes_DGEA_p0.05_HighRisk_vs_AverageRisk_LEP_RMPMOnly.csv", row.names=FALSE, quote = FALSE)
+
+
+
+
+
+##Generate Genetic Breast Cancer Risk MEP gene set
+#load DESeq2
+library(DESeq2)
+#Make a variable pointing to path your htseq count files are in
+directory <- "~/Desktop/Harmonized_counts/RNAseq_LEP_MEP_Age_GeneticRisk/"
+
+#Read in sampleTable
+sampleTable <- read.csv("~/Desktop/RNAseq_Analyses/2021_11/Susceptibility_SampleTable.csv")
+sampleTable$Seq_Run <- as.factor(sampleTable$Seq_Run)
+#Select for MEP only 
+MEPsampleTable <- subset(sampleTable,Cell_Type=="MEP")
+#Select for RM and PM only
+RMMEPsampleTable <- subset(MEPsampleTable,Tissue_Source=="RM")
+PMMEPsampleTable <- subset(MEPsampleTable,Tissue_Source=="PM")
+RMPMMEPsampleTable <- rbind(RMMEPsampleTable,PMMEPsampleTable)
+head(RMPMMEPsampleTable)
+
+#Build DESeqDataSet using DESeqDataSetFromHTSeqCount function
+Yapdds <- DESeqDataSetFromHTSeqCount(sampleTable = RMPMMEPsampleTable,
+                                      directory = directory,
+                                      design= ~ Seq_Run + Genetic_Risk_Group)
+
+#Pre-filtering, remove rows of genes with less than 10 reads, makes things faster
+keep <- rowSums(counts(Yapdds)) >= 10
+Yapdds <- Yapdds[keep,]
+
+#Run deseq algorithm on dataset
+Yapdds <- DESeq(Yapdds)
+
+#Get normalized counts
+dds <- estimateSizeFactors(Yapdds)
+Normalized_counts <- counts(dds, normalized=TRUE)
+
+#Batch correct counts
+library(sva)
+dat <- Normalized_counts
+batch = Yapdds$Seq_Run
+mod0 <- model.matrix(~   1, colData(Yapdds))
+combat_data = ComBat(dat, batch=batch)
+write.csv(combat_data,"~/Desktop/RNAseq_Analyses/2022_01/2022_01_18_NormalizedCounts_GeneticRiskSamples_MEP_RMPMOnly.csv", quote = FALSE)
+
+#Make a result table
+res <- results(Yapdds,contrast=c("Genetic_Risk_Group","High","Average"),alpha=0.05)
+summary(res)
+resOrdered <- res[order(res$padj),]
+#get list of gene universe
+GeneUniverse <- row.names(resOrdered)
+write.csv(GeneUniverse,
+          file="~/Desktop/RNAseq_Analyses/2022_01/2022_01_18_/gene_universe_MEP_RMPMOnly.csv",quote = FALSE,row.names=FALSE)
+#get list of differentially expressed genes
+resSig <- subset(resOrdered, padj < 0.05)
+write.csv(as.data.frame(resSig),
+          file="~/Desktop/RNAseq_Analyses/2022_01/2022_01_18_DGEA_p0.05_HighRisk_vs_AverageRisk_MEP_RMPMOnly.csv")
+#get list of differentially expressed genes, just the gene names
+GenesOfInterest <- row.names(resSig)
+write.csv(GenesOfInterest, row.names = FALSE, quote = FALSE, file="~/Desktop/RNAseq_Analyses/2022_01/2022_01_18_GeneList_DGEA_p0.05_HighRisk_vs_AverageRisk_MEP.csv")
+#Get list of differentially expressed genes that increase (go up in old compared to young)
+upGenes <- subset(resSig, log2FoldChange > 0)
+upGeneList <- row.names(upGenes)
+write.csv(as.data.frame(upGeneList),
+          file="~/Desktop/RNAseq_Analyses/2022_01/2022_01_18_upGenes_DGEA_p0.05_HighRisk_vs_AverageRisk_MEP_RMPMOnly.csv", row.names=FALSE, quote = FALSE)
+
+downGenes <- subset(resSig, log2FoldChange < 0)
+downGeneList <- row.names(downGenes)
+write.csv(as.data.frame(downGeneList),
+          file="~/Desktop/RNAseq_Analyses/2022_01/2022_01_18_downGenes_DGEA_p0.05_HighRisk_vs_AverageRisk_MEP_RMPMOnly.csv", row.names=FALSE, quote = FALSE)
+
+
