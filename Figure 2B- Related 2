@@ -1,1 +1,102 @@
+####Code related to Fishers analysis comparing YAP1 post-stasis gene signature to stem cell related gene signatures
 
+
+
+###Generic Intersect Function
+#Read in your gene lists and gene universe files, convert to genesymbol
+#Your favorite gene list
+YourFavGeneList <- read.table ("~/Desktop/RNAseq_Analyses/2022_03/2022_03_02/AllYAPSamples_DGEA_p05/AllYapSamples_p05UpGenes.csv",
+                               sep=",", header=TRUE)
+library(EnsDb.Hsapiens.v86)
+YourFavGeneList_Symbol <- ensembldb::select(EnsDb.Hsapiens.v86, keys = as.vector(YourFavGeneList$SigUpGenes), keytype = "GENEID", columns = c("SYMBOL"))
+YourFavGeneList_Symbol2 <- YourFavGeneList_Symbol$SYMBOL
+write.table(YourFavGeneList_Symbol2, file="YourFavGeneList_genesymbol.csv", sep=",", row.names = FALSE,col.names = FALSE)
+
+#Your Gene Universe
+GeneUniverse <- read.table ("~/Desktop/RNAseq_Analyses/2022_03/2022_03_02/AllYAPSamples_DGEA_p05/GeneUniverse_AllYapSamples_DGEA_p0.05_Yap_vs_Ctrl_JustEnsemblNames.csv",
+                            sep=",", header=TRUE)
+GeneUniverse_Symbol <- ensembldb::select(EnsDb.Hsapiens.v86, keys = as.vector(GeneUniverse$x), keytype = "GENEID", columns = c("SYMBOL"))
+GeneUniverse_Symbol2 <- GeneUniverse_Symbol$SYMBOL
+write.table(GeneUniverse_Symbol2, file="GeneUniverse_genesymbol.csv", sep=",", row.names = FALSE,col.names = FALSE)
+
+#Assign variables for first gene list you are comparing
+b <- read.table("~/Desktop/RNAseq_Analyses/Gene Lists of Interest/Hematopoiesis_Stem_Ivanova2002.csv",
+                sep=",", header=FALSE)
+#Assign gene universe to variable a
+a <- read.table("GeneUniverse_genesymbol.csv",
+                sep=",", header=FALSE)
+#Assign Your favorite genes to variable c
+c <- read.table("YourFavGeneList_genesymbol.csv",
+                sep=",", header=FALSE)
+
+#invert data
+a <- a [,1]
+b <- b [,1]
+c <- c [,1]
+#intersect data
+list1 <- intersect(a,b)
+list2 <- intersect(b,c)
+#Determine number of genes intersecting
+la <- length(a)
+lb <- length(b)
+lc <- length(c)
+ll1 <- length(list1)
+ll2 <- length(list2)
+ld <- la-lc
+
+#Write list of genes that overlap
+write.csv(list2,file="Intersect_YapClonalImmortalSignature_Hematopoiesis_Stem_Ivanova2002.csv",row.names = FALSE,quote=FALSE)
+
+DEGenesInSet <- ll2
+print(paste("No of DE Genes in Set is ",DEGenesInSet))
+
+DEGenesNotInSet <- lc-ll2
+print(paste("No of DE Genes Not in Set is ",DEGenesNotInSet))
+
+nonDEGenesInSet <- ll1 - ll2
+print(paste("No of non DE Genes in Set is ",nonDEGenesInSet))
+
+nonDEGenesNotInSet <- ld- nonDEGenesInSet
+print(paste("No of non DE Genes Not in Set is ",nonDEGenesNotInSet))
+
+
+
+###Generic Fishers Test/Odds Ratio Analysis
+#Fishers test
+#Make matrix
+Data <- matrix(c(DEGenesInSet,DEGenesNotInSet,nonDEGenesInSet,nonDEGenesNotInSet),
+               nrow = 2,
+               dimnames = list(Signaturegenes = c("In","Out"),
+                               YAPDEGenes = c("DEGenes","Non DE Genes")))
+fisher.test(Data,alternative = "greater")
+
+
+
+###Plot with ggPlot
+library(ggplot2)
+library(dplyr)
+library(RColorBrewer)
+
+#load in data
+df <- read.csv("~/Desktop/RNAseq_Analyses/2022_03/2022_03_04/Fishers_StemSignatures/Summary_Fishers_YAPClonImmortal_StemCellGeneSigs.csv")
+
+pdf("~/Desktop/RNAseq_Analyses/2022_03/2022_03_04/Fishers_StemSignatures/YapClonalImmortalSignature_vs_StemSignatures_PvalueGradient.pdf")
+
+ggplot(df, aes(x=reorder(Gene_Signature,Odds_Ratio), y=Odds_Ratio, fill = P_value)) +
+  
+  geom_point(shape=21, size=4) +
+  scale_fill_gradient2(limits = c(1.3,9),midpoint = 1.3, low = "white", mid ="white", high = "turquoise3", name=expression(paste("P value (-Log"[10], ")"))) +
+  geom_hline(yintercept = 1, color="magenta3", size=1.6) +
+  ylab("Odds Ratio") + xlab("") + ylim(0,6) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(size = 14)) +
+  theme(axis.text.y = element_text(size = 16)) +
+  theme(axis.title.x = element_text(size = 16)) +
+  theme(legend.text=element_text(size=14)) +
+  theme(aspect.ratio=3/2) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1)) +
+  coord_flip()
+
+dev.off()
