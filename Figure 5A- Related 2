@@ -1,0 +1,25 @@
+### Bar plots of Cytoscan Amplification Data
+
+#Read in csv
+data <- read.csv(file = "~/Desktop/Manuscripts/YAP Manuscript/Version_3/Cytoscan Analyses/yap1experiment_data.csv")
+
+yap4data <- subset(data,Experiment == "YAP4")
+yap4data$Passage <- as.character(yap4data$Passage)
+
+library(ggplot2)
+
+pdf("YAP4Experiment_PercentIMMP2LAmplification.pdf")
+ggplot(data=yap4data, aes(x=Passage, y=Percent_Amp_IMMMP2L)) +
+  geom_bar(stat="identity") +
+  theme_bw() + 
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  theme(axis.line = element_line(colour = 'black', size = 1)) +
+  theme(aspect.ratio = 2/5) +
+  theme(axis.text.y = element_text(color = 'black',size=18)) +
+  theme(axis.title.y = element_text(color = 'black', size=15)) +
+  theme(axis.title.x = element_blank()) +
+  theme(legend.text=element_text(size=14)) +
+  theme(legend.title=element_text(size=14)) +
+  theme(axis.text.y = element_text(size=12)) 
+dev.off()
