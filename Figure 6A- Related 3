@@ -1,5 +1,5 @@
 
-####Perform DGEA to Generate Progression to Neoplasia gene set
+####Perform DGEA to Generate Progression to DCIS gene set
 #Using Brunner et al data
 #https://support.bioconductor.org/p/111635/
 #Generate list of differentially expressed genes
