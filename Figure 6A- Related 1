@@ -1,0 +1,70 @@
+####Generic Intersect Code
+#Read in your gene lists and gene universe files, convert to genesymbol
+#Your favorite gene list
+YourFavGeneList <- read.table ("~/Desktop/RNAseq_Analyses/2022_03/2022_03_18/DGEA_YAP_vs_Control_AllEarlySamples/AllYapEarlySamples_p05UpGenes.csv",
+                               sep=",", header=TRUE)
+library(EnsDb.Hsapiens.v86)
+# YourFavGeneList_Symbol <- ensembldb::select(EnsDb.Hsapiens.v86, keys = as.vector(YourFavGeneList$SigUpGenes), keytype = "GENEID", columns = c("SYMBOL"))
+# YourFavGeneList_Symbol2 <- YourFavGeneList_Symbol$SYMBOL
+# write.table(YourFavGeneList_Symbol2, file="YourFavGeneList_genesymbol.csv", sep=",", row.names = FALSE,col.names = FALSE)
+
+#Your Gene Universe
+GeneUniverse <- read.table ("~/Desktop/RNAseq_Analyses/2022_03/2022_03_18/DGEA_YAP_vs_Control_AllEarlySamples/GeneUniverse.csv",
+                            sep=",", header=TRUE)
+# GeneUniverse_Symbol <- ensembldb::select(EnsDb.Hsapiens.v86, keys = as.vector(GeneUniverse$x), keytype = "GENEID", columns = c("SYMBOL"))
+# GeneUniverse_Symbol2 <- GeneUniverse_Symbol$SYMBOL
+# write.table(GeneUniverse_Symbol2, file="GeneUniverse_genesymbol.csv", sep=",", row.names = FALSE,col.names = FALSE)
+
+#Assign variables for first gene list you are comparing
+b <- read.table("~/Desktop/RNAseq_Analyses/Gene Lists of Interest/BCRisk_Signatures/upGenes_DGEA_p0.05_HighRisk_vs_AverageRisk_LEP_RMPMOnly.csv",
+                sep=",", header=FALSE)
+b <- b$V1
+#Assign gene universe to variable a
+a <- GeneUniverse$x
+#Assign Your favorite genes to variable c
+c <- YourFavGeneList$SigUpGenes
+
+#invert data
+# a <- a [,1]
+# b <- b [,1]
+# c <- c [,1]
+#intersect data
+list1 <- intersect(a,b)
+list2 <- intersect(b,c)
+#Determine number of genes intersecting
+la <- length(a)
+lb <- length(b)
+lc <- length(c)
+ll1 <- length(list1)
+ll2 <- length(list2)
+ld <- la-lc
+
+#Write list of genes that overlap
+write.csv(list2,file="Intersect_PostStasisYapSignature_Genetic_Risk_LEP_Ensembl.csv",row.names = FALSE,quote=FALSE)
+#Convert to genesymbol
+YourFavGeneList_Symbol <- ensembldb::select(EnsDb.Hsapiens.v86, keys = list2, keytype = "GENEID", columns = c("SYMBOL"))
+YourFavGeneList_Symbol2 <- YourFavGeneList_Symbol$SYMBOL
+write.table(YourFavGeneList_Symbol2, file="Intersect_PostStasisYapSignature_Genetic_Risk_LEP_GeneSymbol.csv", sep=",", row.names = FALSE,col.names = FALSE)
+
+DEGenesInSet <- ll2
+print(paste("No of DE Genes in Set is ",DEGenesInSet))
+
+DEGenesNotInSet <- lc-ll2
+print(paste("No of DE Genes Not in Set is ",DEGenesNotInSet))
+
+nonDEGenesInSet <- ll1 - ll2
+print(paste("No of non DE Genes in Set is ",nonDEGenesInSet))
+
+nonDEGenesNotInSet <- ld- nonDEGenesInSet
+print(paste("No of non DE Genes Not in Set is ",nonDEGenesNotInSet))
+
+
+
+
+####Generic Fishers Test Code
+#Make matrix
+Data <- matrix(c(DEGenesInSet,DEGenesNotInSet,nonDEGenesInSet,nonDEGenesNotInSet),
+               nrow = 2,
+               dimnames = list(Signaturegenes = c("In","Out"),
+                               YAPDEGenes = c("DEGenes","Non DE Genes")))
+fisher.test(Data,alternative = "greater")
