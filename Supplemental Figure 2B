@@ -1,1 +1,90 @@
+####Code to generate YAP1 expression plots in YAP1 post-stasis samples
 
+#DESeq2
+library(DESeq2)
+#Make a variable pointing to path your htseq count files are in
+directory <- "~/Desktop/RNAseq_Analyses/2020_2021_Analyses_Old_Computer/DESeq2_Analyses_DataGenerated/Yap1_2_4_184A1_countfiles/"
+
+#Generate a sample table
+#Get the names of all files want to analyze
+sampleFiles1 <- grep("14914",list.files(directory),value=TRUE)
+sampleFiles2 <- grep("14915",list.files(directory),value=TRUE)
+sampleFiles3 <- grep("26247",list.files(directory),value=TRUE)
+sampleFiles4 <- grep("26248",list.files(directory),value=TRUE)
+sampleFiles5 <- grep("33708",list.files(directory),value=TRUE)
+sampleFiles6 <- grep("33709",list.files(directory),value=TRUE)
+sampleFiles7 <- grep("33710",list.files(directory),value=TRUE)
+sampleFiles8 <- grep("33714",list.files(directory),value=TRUE)
+sampleFiles9 <- grep("33715",list.files(directory),value=TRUE)
+sampleFiles10 <- grep("33716",list.files(directory),value=TRUE)
+sampleFiles <- c(sampleFiles1,sampleFiles2,sampleFiles3,sampleFiles4,sampleFiles5,sampleFiles6,sampleFiles7,sampleFiles8,sampleFiles9,sampleFiles10)
+
+#Get names of samples want to analyze
+NamesOfSamples <- sampleFiles
+NamesOfSamples2 <- gsub(pattern = "\\d+_Yap", replacement = "Yap", x = NamesOfSamples)
+NamesOfSamples3 <- gsub(pattern = "_L999.bam.count", replacement = "", x = NamesOfSamples2)
+
+#Make a list of condition 1, ctrl or yap samples
+CtrlorYap <- c("Ctrl","Yap","Ctrl","Yap",rep("Ctrl",3),rep("Yap",3))
+
+#Make a list of the background experiment/run
+experiment <- c(rep("1",2),rep("2",2),rep("4",6))
+
+#Make a table of sample names, file names, and condition
+sampleTable <- data.frame(sampleName = NamesOfSamples3,
+                          fileName = sampleFiles,
+                          phenotype = CtrlorYap,
+                          background = experiment)
+
+#Build DESeqDataSet using DESeqDataSetFromHTSeqCount function
+Yap4dds <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
+                                      directory = directory,
+                                      design= ~ background + phenotype)
+
+#Pre-filtering, remove rows of genes with less than 10 reads, makes things faster
+keep <- rowSums(counts(Yap4dds)) >= 10
+Yap4dds <- Yap4dds[keep,]
+
+#Run deseq algorithm on dataset
+Yap4dds <- DESeq(Yap4dds)
+
+#Batch Correct
+library(sva)
+
+#Calculate rlog transformed values of count data
+#Returns SummarizedExperiment object which contains rlog-transformed values in its assay slot 
+rld <- rlog(Yap4dds)
+dat <- assay(rld)
+batch = Yap4dds$background
+mod0 <- model.matrix(~   1, colData(Yap4dds))
+combat_data = ComBat(dat=dat, batch=batch,mod=mod0,par.prior=TRUE, prior.plots=FALSE)
+
+yapdata <- combat_data["ENSG00000137693",]
+yapdataframe <- data.frame(yapdata)
+
+SampleType <- as.factor(c("Yap1_240LB_p16sh_11p","Yap1_240LB_p16sh_Yap_12p","Yap2_240LB_p16sh_Ctrl_12p","Yap2_240LB_p16sh_Yap_12p",rep("Yap4_184D_p16sh_Ctrl_12p",3),rep("Yap4_184D_p16sh_Yap_12p",3)))
+yapdataframe$SampleName <- SampleType
+
+Transduction <-c("Ctrl","Yap","Ctrl","Yap",rep("Ctrl",3),rep("Yap",3))
+yapdataframe$Transduction <- Transduction
+
+Specimen <- c("240LB_A","240LB_A","240LB_B","240LB_B",rep("184D",3),rep("184D",3))
+yapdataframe$Specimen <- Specimen
+
+library(ggplot2)
+pdf("Yap1 Expression_boxandwhisker_1.pdf")
+ggplot(yapdataframe, aes(x=Transduction, y=yapdata)) + 
+  geom_boxplot() +
+  geom_dotplot(aes(fill=Specimen),binaxis='y',stackdir='center', position=position_dodge(.2)) +
+  ylab("Log Transformed Count") +
+  theme_bw() + 
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  theme(aspect.ratio = 9/12) +
+  theme(axis.text.x = element_text(size=14)) +
+  theme(axis.title.y = element_text(size=14)) +
+  theme(axis.title.x = element_blank()) +
+  theme(legend.text=element_text(size=14)) +
+  theme(legend.title=element_text(size=14)) +
+  theme(axis.text.y = element_text(size=12))
+dev.off()
