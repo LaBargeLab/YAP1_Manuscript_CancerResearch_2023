@@ -1,11 +1,9 @@
 
+####Perform DGEA to Generate Progression to Early Neoplasia (EN) gene set
+#Using Brunner et al data
 #https://support.bioconductor.org/p/111635/
-
-#Goals
-#Look at Neoplasia vs Normal breast tissues
-
 #Generate list of differentially expressed genes
-#GSEA
+#https://support.bioconductor.org/p/111635/
 
 library(DESeq2)
 ##Change working directory to that which contains the data you want to analyze
