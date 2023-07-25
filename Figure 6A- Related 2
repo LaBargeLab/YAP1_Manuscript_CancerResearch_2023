@@ -1,0 +1,92 @@
+
+#https://support.bioconductor.org/p/111635/
+
+#Goals
+#Look at Neoplasia vs Normal breast tissues
+
+#Generate list of differentially expressed genes
+#GSEA
+
+library(DESeq2)
+##Change working directory to that which contains the data you want to analyze
+#Read in the file of interest with raw read counts
+GEData <- read.table("~/Desktop/RNAseq_Analyses/2020_2021_Analyses_Old_Computer/DESeq2_Analyses_DataGenerated/Brunneretal2014_Analyses/GSE47462_Raw_counts_Refseq_genes.txt", header = TRUE)
+head(GEData)
+cts <- GEData
+
+#Make coldata object with your sample info.
+#Get names of samples from above table
+samplenames <- colnames(GEData)
+specimen1 <- gsub(pattern = "STT\\d+_Breast_", replacement = "", x = samplenames)
+specimen1 <- gsub(pattern = "_normal", replacement = "", x = specimen1)
+specimen1 <- gsub(pattern = "_EN", replacement = "", x = specimen1)
+specimen1 <- gsub(pattern = "_DCIS", replacement = "", x = specimen1)
+specimen1 <- gsub(pattern = "_IDC", replacement = "", x = specimen1)
+tissue1 <- gsub(pattern = "STT\\d+_Breast_\\d+_", replacement = "", x = samplenames)
+coldata <- data.frame(specimen=specimen1,tissue=tissue1)
+rownames(coldata) <- colnames(GEData)
+
+library("DESeq2")
+dds <- DESeqDataSetFromMatrix(countData = cts,
+                              colData = coldata,
+                              design = ~ specimen + tissue)
+
+#Pre-filtering, remove rows of genes with less than 10 reads, makes things faster
+keep <- rowSums(counts(dds)) >= 10
+dds <- dds[keep,]
+
+#Subsetting out the genes with small counts
+#We want a normalized count of at least 10 in 2 or more samples
+dds <- estimateSizeFactors(dds)
+nc <- counts(dds, normalized=TRUE)
+filter <- rowSums(nc >= 10) >= 2
+dds <- dds[filter,]
+
+#Run deseq algorithm on dataset
+dds <- DESeq(dds)
+
+#Omit the bad rows from the results
+dds[which(mcols(dds)$betaConv),]
+
+#Find genes significantly changed between neoplasia and normal
+res <- results(dds,contrast=c("tissue","EN","normal"),alpha=0.05, tidy=TRUE)
+
+#Make new table with symbols
+library(EnsDb.Hsapiens.v86)
+new.table <- ensembldb::select(EnsDb.Hsapiens.v86, keys = as.vector(res$row), keytype = "GENEID", columns = c("SYMBOL"))
+names(new.table)[1] <- "row"
+names(new.table)[2] <- "symbol"
+
+names(new.table) <- c("row", "symbol")
+m <- merge(res, new.table, all.x=TRUE)
+
+#Order Results based on lowest p-values
+resOrdered <- m[order(m$padj),]
+
+#exporting results to csv files
+write.csv(as.data.frame(resOrdered),
+          file="DGEA_Progression_To_Neoplasia_AllGenes.csv")
+
+#exporting only results that pass adjusted p-value threshold
+resSig <- subset(resOrdered, padj < 0.05)
+resSig2 <- resSig$row
+write.csv(as.data.frame(resSig2),file="DGEA_Progression_To_Neoplasia_Sig_Genes.csv",row.names=FALSE)
+
+#subset all upregulated genes
+SigUpGenes <- subset(resSig, log2FoldChange > 0)
+SigUpGenes <- SigUpGenes$row
+write.csv(as.data.frame(SigUpGenes),file="DGEA_Progression_To_Neoplasia_Sig_Up_Genes.csv",row.names=FALSE)
+
+#subset all downregulated genes
+SigDownGenes <- subset(resSig, log2FoldChange > 0)
+SigDownGenes <- SigDownGenes$row
+write.csv(as.data.frame(SigDownGenes),file="DGEA_Progression_To_Neoplasia_Sig_Down_Genes.csv",row.names=FALSE)
+
+#get gene universe
+geneuniverse <- resOrdered$row
+write.csv(as.data.frame(geneuniverse),file="DGEA_Progression_To_Neoplasia_GeneUniverse.csv",row.names=FALSE)
+
+#exporting only results that pass adjusted p-value threshold
+resSig3 <- subset(resOrdered, padj < 0.01)
+resSig4 <- resSig3$row
+write.csv(as.data.frame(resSig4),file="DGEA_Progression_To_Neoplasia_Sig_Genes_p.01.csv",row.names=FALSE)
