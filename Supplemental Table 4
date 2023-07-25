@@ -1,0 +1,115 @@
+#Change working directory
+
+#Read in data
+df <- read.csv(file="~/Desktop/Manuscripts/YAP Manuscript/Pubmed_14PutativeGenes/pubmednumbers.csv")
+
+#load ggplot
+library(ggplot2)
+
+pdf("PubmedResults_Breast_Cancer.pdf")
+ggplot(data=df, aes(x=Gene, y=Breast_Cancer)) +
+  geom_bar(stat="identity") +
+  ylab("") +
+  guides(fill=guide_legend(title=NULL)) +
+  theme_bw() + 
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  theme(axis.line = element_line(colour = 'black', size = 1)) +
+  theme(axis.text.y = element_text(color = 'black',size=18)) +
+  theme(axis.title.y = (element_blank())) +
+  theme(axis.title.x = element_blank()) +
+  theme(legend.text=element_text(size=14)) +
+  theme(legend.title=element_text(size=14)) +
+  theme(axis.text.y = element_text(size=12)) +
+  coord_flip() 
+dev.off()
+
+pdf("PubmedResults_Age.pdf")
+ggplot(data=df, aes(x=Gene, y=Age)) +
+  geom_bar(stat="identity") +
+  ylab("") +
+  guides(fill=guide_legend(title=NULL)) +
+  theme_bw() + 
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  theme(axis.line = element_line(colour = 'black', size = 1)) +
+  theme(axis.text.y = element_text(color = 'black',size=18)) +
+  theme(axis.title.y = (element_blank())) +
+  theme(axis.title.x = element_blank()) +
+  theme(legend.text=element_text(size=14)) +
+  theme(legend.title=element_text(size=14)) +
+  theme(axis.text.y = element_text(size=12)) +
+  coord_flip() 
+dev.off()
+
+pdf("PubmedResults_BRCA.pdf")
+ggplot(data=df, aes(x=Gene, y=BRCA)) +
+  geom_bar(stat="identity") +
+  ylab("") +
+  guides(fill=guide_legend(title=NULL)) +
+  theme_bw() + 
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  theme(axis.line = element_line(colour = 'black', size = 1)) +
+  theme(axis.text.y = element_text(color = 'black',size=18)) +
+  theme(axis.title.y = (element_blank())) +
+  theme(axis.title.x = element_blank()) +
+  theme(legend.text=element_text(size=14)) +
+  theme(legend.title=element_text(size=14)) +
+  theme(axis.text.y = element_text(size=12)) +
+  coord_flip() 
+dev.off()
+
+pdf("PubmedResults_Immortal.pdf")
+ggplot(data=df, aes(x=Gene, y=Immortal)) +
+  geom_bar(stat="identity") +
+  ylab("") +
+  guides(fill=guide_legend(title=NULL)) +
+  theme_bw() + 
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  theme(axis.line = element_line(colour = 'black', size = 1)) +
+  theme(axis.text.y = element_text(color = 'black',size=18)) +
+  theme(axis.title.y = (element_blank())) +
+  theme(axis.title.x = element_blank()) +
+  theme(legend.text=element_text(size=14)) +
+  theme(legend.title=element_text(size=14)) +
+  theme(axis.text.y = element_text(size=12)) +
+  coord_flip() 
+dev.off()
+
+pdf("PubmedResults_hTERT.pdf")
+ggplot(data=df, aes(x=Gene, y=hTERT)) +
+  geom_bar(stat="identity") +
+  ylab("") +
+  guides(fill=guide_legend(title=NULL)) +
+  theme_bw() + 
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  theme(axis.line = element_line(colour = 'black', size = 1)) +
+  theme(axis.text.y = element_text(color = 'black',size=18)) +
+  theme(axis.title.y = (element_blank())) +
+  theme(axis.title.x = element_blank()) +
+  theme(legend.text=element_text(size=14)) +
+  theme(legend.title=element_text(size=14)) +
+  theme(axis.text.y = element_text(size=12)) +
+  coord_flip() 
+dev.off()
+
+pdf("PubmedResults_Stem_Cell.pdf")
+ggplot(data=df, aes(x=Gene, y=Stem_Cell)) +
+  geom_bar(stat="identity") +
+  ylab("") +
+  guides(fill=guide_legend(title=NULL)) +
+  theme_bw() + 
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  theme(axis.line = element_line(colour = 'black', size = 1)) +
+  theme(axis.text.y = element_text(color = 'black',size=18)) +
+  theme(axis.title.y = (element_blank())) +
+  theme(axis.title.x = element_blank()) +
+  theme(legend.text=element_text(size=14)) +
+  theme(legend.title=element_text(size=14)) +
+  theme(axis.text.y = element_text(size=12)) +
+  coord_flip() 
+dev.off()
