@@ -1,0 +1,27 @@
+#### Code to Generate Histogram
+#Read in data file
+data <- read.csv("~/Desktop/RNAseq_Analyses/2022_07/2022_07_29/Analysis_IncludeStemTelomerase/YAPRiskTargetScore_2.csv")
+head(data)
+
+dataOrdered <- data[order(-data$RowSums),]
+head(dataOrdered)
+write.csv(dataOrdered,"Data_Ordered.csv",quote = FALSE)
+
+subsetData <- subset(dataOrdered, RowSums > 4)
+write.csv(subsetData,"Data_RiskScore4Plus.csv",quote = FALSE)
+
+pdf("Histogram of YAP Risk Scores.pdf")
+h <- hist(dataOrdered$RowSums,xlim = c(1,7), breaks= 6,
+          main="Histogram of Putative YAP Transcriptional Targets and BC Risk Scores",
+          xlab = "YAP Risk Score",
+          ylab= "Putative YAP Transcriptional Targets")
+text(h$mids,h$counts,labels=h$counts, adj=c(0.5, -0.5))
+dev.off()
+
+##Make list of top negative survival genes
+data2 <- read.csv("~/Desktop/RNAseq_Analyses/2022_07/2022_07_29/Analysis_IncludeStemTelomerase/Data_RiskScore4Plus_SurvivalData.csv")
+head(data2)
+
+subsetData2 <- subset(data2, Survival. == "Negative")
+head(subsetData2)
+write.csv(subsetData2,"Data_RiskScore4Plus_NegativeSurvivalGenes.csv",quote = FALSE)
