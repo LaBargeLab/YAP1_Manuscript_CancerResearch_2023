@@ -1,0 +1,57 @@
+####Code to generate plot
+
+#load ggplot
+library(ggplot2)
+
+#Read in data
+Data <- read.csv(file = "~/Desktop/Experiments/IF_Human_Tissue/Dan_Analyses/Dan_Analysis_ForR.csv")
+
+#Subset Genetic risk data
+Data2 <- subset(Data,notes=='na')
+GeneticData1 <- subset(Data2,Mutation_Type=="None" & Age_Type=="Young")
+GeneticData2 <- subset(Data2,Mutation_Type=="None" & Age_Type=="Middle.Aged")
+GeneticData3 <- subset(Data2,Mutation_Type=="BRCA" & Age_Type=="Young")
+GeneticData4 <- subset(Data2,Mutation_Type=="BRCA" & Age_Type=="Middle.Aged")
+GeneticData <- rbind(GeneticData1,GeneticData2,GeneticData3,GeneticData4)
+
+#Make box and whisker plot
+pdf("Yap1_Expression_LEP_Nuclear_GeneticRisk_Samples.pdf")
+ggplot(GeneticData, aes(x=factor(Mutation_Type, level=c('None','BRCA')),y=LEP_Nuclear)) + 
+  geom_boxplot() +
+  geom_dotplot(dotsize=1.5,binaxis='y',stackdir='center', position=position_dodge(.2),fill="deeppink") +
+  ylab("") +
+  theme_bw() + 
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  theme(axis.line = element_line(colour = 'black', size = 1)) +
+  theme(aspect.ratio = 2/5) +
+  theme(axis.text.y = element_text(color = 'black',size=18)) +
+  theme(axis.title.y = element_text(color = 'black', size=15)) +
+  theme(axis.title.x = element_blank()) +
+  theme(legend.text=element_text(size=14)) +
+  theme(legend.title=element_text(size=14)) +
+  theme(axis.text.y = element_text(size=12)) 
+dev.off() 
+
+#Subset data
+MiddleAgeGeneticData <- rbind(GeneticData2,GeneticData4)
+write.csv(MiddleAgeGeneticData,file="MiddleAge_GeneticData.csv")
+
+#Make box and whisker plot
+pdf("Yap1_Expression_LEP_Nuclear_GeneticRisk_Samples_MiddleAgeOnly.pdf")
+ggplot(MiddleAgeGeneticData, aes(x=factor(Mutation_Type, level=c('None','BRCA')),y=LEP_Nuclear)) + 
+  geom_boxplot() +
+  geom_dotplot(dotsize=1.5,binaxis='y',stackdir='center', position=position_dodge(.2),fill="deeppink") +
+  ylab("") +
+  theme_bw() + 
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  theme(axis.line = element_line(colour = 'black', size = 1)) +
+  theme(aspect.ratio = 2/5) +
+  theme(axis.text.y = element_text(color = 'black',size=18)) +
+  theme(axis.title.y = element_text(color = 'black', size=15)) +
+  theme(axis.title.x = element_blank()) +
+  theme(legend.text=element_text(size=14)) +
+  theme(legend.title=element_text(size=14)) +
+  theme(axis.text.y = element_text(size=12)) 
+dev.off() 
