@@ -1,0 +1,154 @@
+####Generic intersect code
+library(DESeq2)
+#Make a variable pointing to path your htseq count files are in
+directory <- "~/Desktop/RNAseq_Analyses/2020_2021_Analyses_Old_Computer/DESeq2_Analyses_DataGenerated/Yap1_2_4_184A1_countfiles/"
+
+#Generate a sample table
+#Get the names of all files want to analyze
+sampleFiles1 <- grep("14914",list.files(directory),value=TRUE)
+sampleFiles2 <- grep("14915",list.files(directory),value=TRUE)
+sampleFiles3 <- grep("26247",list.files(directory),value=TRUE)
+sampleFiles4 <- grep("26248",list.files(directory),value=TRUE)
+sampleFiles5 <- grep("33708",list.files(directory),value=TRUE)
+sampleFiles6 <- grep("33709",list.files(directory),value=TRUE)
+sampleFiles7 <- grep("33710",list.files(directory),value=TRUE)
+sampleFiles8 <- grep("33714",list.files(directory),value=TRUE)
+sampleFiles9 <- grep("33715",list.files(directory),value=TRUE)
+sampleFiles10 <- grep("33716",list.files(directory),value=TRUE)
+sampleFiles <- c(sampleFiles1,sampleFiles2,sampleFiles3,sampleFiles4,sampleFiles5,sampleFiles6,sampleFiles7,sampleFiles8,sampleFiles9,sampleFiles10)
+
+#Get names of samples want to analyze
+NamesOfSamples <- sampleFiles
+NamesOfSamples2 <- gsub(pattern = "\\d+_Yap", replacement = "Yap", x = NamesOfSamples)
+NamesOfSamples3 <- gsub(pattern = "_L999.bam.count", replacement = "", x = NamesOfSamples2)
+
+#Make a list of condition 1, ctrl or yap samples
+CtrlorYap <- c("Ctrl","Yap","Ctrl","Yap",rep("Ctrl",3),rep("Yap",3))
+
+#Make a list of the background experiment/run
+experiment <- c(rep("1",2),rep("2",2),rep("4",6))
+
+#Make a table of sample names, file names, and condition
+sampleTable <- data.frame(sampleName = NamesOfSamples3,
+                          fileName = sampleFiles,
+                          phenotype = CtrlorYap,
+                          background = experiment)
+
+#Build DESeqDataSet using DESeqDataSetFromHTSeqCount function
+Yap4dds <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
+                                      directory = directory,
+                                      design= ~ background + phenotype)
+
+#Pre-filtering, remove rows of genes with less than 10 reads, makes things faster
+keep <- rowSums(counts(Yap4dds)) >= 10
+Yap4dds <- Yap4dds[keep,]
+
+#Order factor levels
+Yap4dds$phenotype <- relevel(Yap4dds$phenotype, ref = "Ctrl")
+
+#Makes a result table
+Yap4dds <- DESeq(Yap4dds)
+res <- results(Yap4dds, name = "phenotype_Yap_vs_Ctrl", alpha = 0.05)
+
+#Order Results based on lowest p-values
+resOrdered <- res[order(res$padj),]
+
+#Get list of all genes analyzed
+GeneUniverse <- row.names(resOrdered)
+#convert to genesymbol
+library(EnsDb.Hsapiens.v86)
+
+GeneUniverse_Symbol <- ensembldb::select(EnsDb.Hsapiens.v86, keys = as.vector(GeneUniverse), keytype = "GENEID", columns = c("SYMBOL"))
+
+GeneUniverse_Symbol2 <- GeneUniverse_Symbol$SYMBOL
+write.table(GeneUniverse_Symbol2, file="GeneUniverse_genesymbol.csv", sep=",", row.names = FALSE,col.names = FALSE)
+
+#Get list of significant up genes (post-stasis Yap Signature)
+PostStasisYapSignatureUp1 <- subset(resOrdered, log2FoldChange > 0)
+PostStasisYapSignatureUp <- row.names(subset(PostStasisYapSignatureUp1,padj<0.05))
+#Convert to genesymbol
+PostStasisYapSignatureUp_Symbol <- ensembldb::select(EnsDb.Hsapiens.v86, keys = as.vector(PostStasisYapSignatureUp), keytype = "GENEID", columns = c("SYMBOL"))
+
+PostStasisYapSignatureUp_Symbol2 <- PostStasisYapSignatureUp_Symbol$SYMBOL
+write.table(PostStasisYapSignatureUp_Symbol2, sep=",", file="PostStasisYapSignature_p05UpGenes_genesymbol.csv",row.names = FALSE,col.names = FALSE)
+
+#Read in list of Cordenonsi_2011
+b <- read.table("Cordenonsietal_2011_MCF10A_mousefibroblast_mouseliver_Yap.csv",
+                sep=",", header=FALSE)
+#Assign gene universe to variable a
+a <- read.table("GeneUniverse_genesymbol.csv",
+                sep=",", header=FALSE)
+#Assign YapSignature genes to variable c
+c <- read.table("PostStasisYapSignature_p05UpGenes_genesymbol.csv",
+                sep=",", header=FALSE)
+
+#Intersect Cordenonsi_2011 with gene universe
+a <- a [,1]
+b <- b [,1]
+
+#head(a,)
+
+list1 <- intersect(a,b)
+head(list1,)
+length(list1)
+
+length(a)
+length(b)
+
+#Intersect Cordenonsi_2011 with PostStasisYapSignatureUp2
+c <- c [,1]
+
+#head(a,)
+
+list2 <- intersect(b,c)
+head(list2,)
+length(list2)
+
+length(a)
+length(b)
+length(c)
+length(list1)
+length(list2)
+
+
+
+
+####Generic Fishers code
+#Make matrix
+Data <- matrix(c(11,372,40,17739),
+               nrow = 2,
+               dimnames = list(Cordenonsi_2011Genesin = c("DEGenes","Non DE Genes"),
+                               Cordenonsi_2011Genesout = c("DEGenes","Non DE Genes")))
+fisher.test(Data,alternative = "greater")
+
+
+
+
+
+
+####Code to plot
+library(ggplot2)
+library(dplyr)
+library(RColorBrewer)
+
+#load in data
+df <- read.csv("~/Desktop/RNAseq_Analyses/2021_08/2021_08_20/YapSignatures_FishersTest_PostStasisYapPhenotype_3.csv")
+
+pdf("Post-stasisYapSignature_vs_OtherYapSignatures_PvalueGradient.pdf")
+
+ggplot(df, aes(x=reorder(Gene_Signature,Odds_Ratio), y=Odds_Ratio, fill = P_value)) + 
+  geom_point(shape=21, size=4) +
+  scale_fill_gradient2(limits = c(1.3,16),midpoint = 1.3, low = "white", mid ="white", high = "turquoise3", name=expression(paste("P value (-Log"[10], ")"))) +
+  geom_hline(yintercept = 1, color="magenta3", size=1.6) +
+  ylab("Odds Ratio") + xlab("") + ylim(0,34) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(size = 14)) +
+  theme(axis.text.y = element_text(size = 16)) +
+  theme(axis.title.x = element_text(size = 16)) +
+  theme(legend.text=element_text(size=14)) +
+  theme(aspect.ratio=3/2) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1)) +
+  coord_flip()
+dev.off()
