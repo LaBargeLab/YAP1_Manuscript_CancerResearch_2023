@@ -1,0 +1,23 @@
+##Code to Plot Karytope from 240LB-p16sh-YAP1 Cells
+
+#Read in file
+data <- read.csv("~/Desktop/RNAseq_Analyses/2022_06/2022_06_03/Cytoscan_YAP1.csv")
+data$Passage <- as.factor(data$Passage)
+head(data)
+
+#Make plot
+library(ggplot2)
+
+pdf("Karyotype.240LB-p16sh-YAP1_1.pdf")
+ggplot(data=data, aes(x=Chromosome, y=Non.Benign.Genetic.Changes, fill=Passage)) +
+  geom_bar(stat="identity", position=position_dodge()) +
+  scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9", "#009E73")) +
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+                     panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  scale_x_discrete(name ="Chromosome", 
+                   limits=c(data$Chromosome)) +
+  scale_y_continuous(name="Non-Benign Genetic Changes",limits=c(0,26),breaks = c(0,2,4,6,8,10,12,14,16,18,20,22,24,26)) +
+  theme(axis.text = element_text(size = 13)) +
+  theme(axis.title = element_text(size = 20)) +
+  theme(aspect.ratio=3/5)
+dev.off()
