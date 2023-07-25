@@ -1,0 +1,107 @@
+#Stefan Hinz, PhD, 2023/06/22
+set.seed(41)
+
+library(tidyverse)
+
+
+# Read expression data
+data <- readr::read_csv("YAP1_MultiState_Signature.csv")
+
+# Read metabric data
+metab <- readr::read_csv("metabric_expression_zscore.csv")
+colnames(metab)[1] <- "SYMBOL"
+
+# Read metabric column data and filter for breast invasive ductal carcinoma
+cols_metab <- readr::read_csv("metabric_coldata.csv")
+cols_metab <- cols_metab[,-1]
+cols_metab <- filter(cols_metab, CANCER_TYPE_DETAILED == "Breast Invasive Ductal Carcinoma")
+
+# Select relevant columns from metabric data based on SYMBOL column
+metab_selected <- dplyr::select(metab, c(SYMBOL, cols_metab$PATIENT_ID))
+metab_selected <- filter(metab_selected, SYMBOL %in% data$SYMBOL)
+
+# Pivot the metabric selected data from wide to long format
+metab_selected_long <- pivot_longer(metab_selected, cols=-SYMBOL)
+metab_selected_long$direction <- ifelse(metab_selected_long$value > 0, 1, -1)
+
+# Perform a left join of metabric data with expression data by SYMBOL
+combined <- left_join(metab_selected_long, data, by = c("SYMBOL" = "SYMBOL"))
+
+# Calculate correlation expression by multiplying value and direction columns
+combined$corr_expression <- combined$value * combined$Direction
+
+# Create an empty dataframe with 1500 rows and 2 columns
+df <- data.frame(matrix(nrow = 1500, ncol = 2))
+df$X1 <- levels(as.factor(combined$name))
+colnames(df) <- c("name", "Score")
+df$Score[1] <- 1
+
+# Calculate the YAP score
+for (i in levels(as.factor(combined$name))) {
+  temp <- combined %>% 
+    filter(name == i) %>% 
+    dplyr::select(corr_expression) %>%
+    sum(., na.rm = TRUE)
+  
+  df[df$name == i, 2] <- temp
+}
+
+# Perform a left join of metabric column data with df by SAMPLE_ID
+combo_df <- left_join(cols_metab, df, by = c("SAMPLE_ID" = "name"))
+
+# Filter out specific CLAUDIN_SUBTYPE values and reorder the remaining levels
+combo_df2 <- combo_df %>% 
+  filter(!CLAUDIN_SUBTYPE %in% c("NC", "claudin-low")) %>%
+  mutate(CLAUDIN_SUBTYPE = forcats::fct_relevel(CLAUDIN_SUBTYPE, levels = c("LumA", "LumB", "Her2","Basal", "Normal")))
+
+# Create a boxplot with jittered points based on CLAUDIN_SUBTYPE and Score
+ggplot(combo_df2, aes(forcats::fct_relevel(CLAUDIN_SUBTYPE, levels = c("LumA", "LumB", "Her2","Basal", "Normal")), Score)) + 
+  geom_jitter(width = 0.15) + 
+  geom_boxplot(alpha = 0, outlier.shape = NA) +
+  theme_bw() +
+  xlab("") +
+  ylab("YAP1 Immortal Signature Score") +
+  scale_fill_manual(values = c("LumA" = "blue", 
+                               "LumB" = "black",
+                               "Her2" = "pink",
+                               "Basal" = "red", 
+                               "Normal" = "green"))
+
+#################
+# Survival Analyses
+
+library(survival)
+library(survminer)
+
+
+# Add tertiles column based on Score values
+combo_df2 <- combo_df2 %>%
+  mutate(tertiles = ntile(Score, 2)) %>%
+  mutate(tertiles = if_else(tertiles == 1, 'Low', if_else(tertiles == 2, 'High', 'High')))
+
+# Set the Subtype of interest for i
+i <- "LumB"
+
+# Filter combo_df2 based on tertiles and CLAUDIN_SUBTYPE
+combo_df3 <- combo_df2 %>% filter(tertiles %in% c("Low", "High"))
+combo_df3 <- combo_df3 %>% filter(CLAUDIN_SUBTYPE == i)
+
+# Fit survival model using survfit
+fit <- survfit(Surv(OS_MONTHS, as.numeric(substr(OS_STATUS, 1, 1))) ~ tertiles, data = combo_df3)
+
+# Generate survival plot using ggsurvplot
+ggsurvplot(fit, 
+           data = combo_df3,
+           legend.title = paste0(name, " Score"),
+           legend.labs = c("High", "Low"),
+           pval = TRUE,
+           surv.median.line = "hv",
+           risk.table = TRUE,
+           tables.height = 0.2,
+           tables.theme = theme_cleantable(),
+           conf.int = FALSE,
+           ncensor.plot = TRUE, 
+           palette = c("#FF007F", "black"),
+           risk.table.height = 0.15,
+           ncensor.plot.height = 0.1
+)
